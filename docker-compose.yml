@@ -10,6 +10,11 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pharma -d pharmacy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   kafka:
     image: apache/kafka:3.8.0
@@ -29,5 +34,32 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
 
+  # One-shot helper: runs every sql/*.sql file in alphabetical order, then exits.
+  # Not started by "docker compose up" (it belongs to the "tools" profile).
+  seed:
+    image: postgis/postgis:16-3.4
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: pharma
+    volumes:
+      - ./sql:/sql:z
+    entrypoint:
+      - sh
+      - -c
+      - |
+        for f in /sql/*.sql; do
+          echo "Running $$f"
+          psql -h db -U pharma -d pharmacy -v ON_ERROR_STOP=1 -f "$$f" || exit 1
+        done
+        echo "Done."
+
 volumes:
   pgdata:
+
+# Run the containers then the seed :
+# docker compose up -d
+# docker compose --profile tools run --build --rm seed
+
