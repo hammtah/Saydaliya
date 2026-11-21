@@ -2,7 +2,7 @@
 
 Usage:
     pip install "psycopg[binary]"
-    python load/import_osm.py                 # download from Overpass, then import
+k    python load/import_osm.py                 # download from Overpass, then import
     python load/import_osm.py --dry-run       # download and show what WOULD be imported
     python load/import_osm.py --file osm.json # reuse a saved download (no network)
 
