@@ -2,9 +2,9 @@
 
 Usage:
     pip install "psycopg[binary]"
-    python slice-a/import_osm.py                 # download from Overpass, then import
-    python slice-a/import_osm.py --dry-run       # download and show what WOULD be imported
-    python slice-a/import_osm.py --file osm.json # reuse a saved download (no network)
+    python load/import_osm.py                 # download from Overpass, then import
+    python load/import_osm.py --dry-run       # download and show what WOULD be imported
+    python load/import_osm.py --file osm.json # reuse a saved download (no network)
 
 Running it twice is safe: rows are matched on osm_id and updated, not duplicated.
 """
