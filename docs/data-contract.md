@@ -86,3 +86,7 @@ A "Night" filter is postponed until we agree on what "night" means (a duty windo
 1. Tell the team before you change a message or a table.
 2. Database changes are a **new numbered file** in `sql/` (`05_...sql`), never a silent edit of an old one.
 3. Update this file in the same change.
+
+## Important change
+
+the "is_24h" flag we get from OSM means that the pharmacy is always open which is not what we want, in morocco 24h means that this is the in duty-pharmacy and this role change every day, which corresponds to a pharmacy that has a start and end difference is 24h, so briefly we should remove the is_24h column because its useless. 
