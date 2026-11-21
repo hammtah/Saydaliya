@@ -75,9 +75,11 @@ The view also gives `last_status` and `last_confirmed_at`, for the "Confirmed 12
 | Feature | How it uses the view |
 |---|---|
 | Nearest pharmacy (Slice C) | `SELECT ... FROM v_open_now ORDER BY geom <-> <user point> LIMIT 3` |
+| Filter "Open now" | no filter: the whole view |
 | Filter "24h" | `WHERE is_24h` |
-| Filter "Night" | the whole view (on duty tonight) |
 | Coverage map (Slice B) | the pharmacies in the view are the "on-duty" ones |
+
+A "Night" filter is postponed until we agree on what "night" means (a duty window is just a start and an end, it is not tied to night).
 
 ## Changing this contract
 
