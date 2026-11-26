@@ -8,7 +8,7 @@ In Morocco, only "pharmacies de garde" are open at night, on weekends and on hol
 
 ## What we build (3 screens)
 
-1. **Home:** a map and one big button, "Find nearest pharmacy now". Filters: All / Night / 24h.
+1. **Home:** a map and one big button, "Find nearest pharmacy now". First-version filters: Open now / 24h. Night is postponed; the meaning of All still needs a team decision.
 2. **Result:** the closest pharmacy with distance, estimated time, Call, Navigate and WhatsApp share. Users can tap "It's open" or "It's closed". If it's closed, we show the next one.
 3. **Coverage map:** green zones are within 3 km of an on-duty pharmacy, amber zones are not.
 
@@ -48,9 +48,10 @@ There are three slices (A, B, C) and a shared Step 0. Each feature below says wh
 - *Example:* You send one message, and the pharmacy turns green on the map.
 - *Why:* This is what makes the app say "open now" rather than just "a pharmacy".
 
-**3. Filters: All / Night / 24h**
-- *What:* Three buttons on the home screen. "Night" shows pharmacies open at night, "24h" shows the ones open all day and night.
-- *Example:* Tap "24h" and the map only keeps the 24h pharmacies.
+**3. Filters: Open now / 24h**
+- *What:* Open now shows pharmacies with an active duty window, regardless of duration, unless excluded by a recent closed report. 24h keeps those with an active window lasting exactly 24 hours. Both use `v_open_now`; 24h is a daily duty role, not a permanent OSM property.
+- *Example:* A 24-hour active duty appears in both filters; a 12-hour active duty appears only in Open now; an expired duty appears in neither.
+- *Pending:* Night is postponed until its meaning is agreed. The meaning of All is still a team decision.
 - *Why:* People need different things depending on the hour.
 
 **4. Rota simulator**
@@ -105,6 +106,7 @@ There are three slices (A, B, C) and a shared Step 0. Each feature below says wh
 
 **12. Shared base**
 - *What:* One setup that starts the database and the mailbox (Kafka) on everyone's computer, plus a file of about 20 fake pharmacies, plus a written agreement on what the messages look like.
+- *Setup:* Follow the README. Kafka readiness and creation of both topics are handled by Compose. SQL files run in order, including new migrations; the full seed erases existing database data. Existing databases can apply migration 06 alone without a reset.
 - *Why:* So everyone can start working on day 1 without waiting for anyone else.
 
 ## Rules so nobody waits for anybody
