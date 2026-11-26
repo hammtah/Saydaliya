@@ -1,4 +1,4 @@
-"""Slice A, feature 3: the queries behind the All / Night / 24h filter buttons.
+"""Slice A, feature 3: Open now / 24h queries (command line, no UI yet).
 
 Usage:
     pip install "psycopg[binary]"
@@ -11,9 +11,10 @@ Everything goes through the view v_open_now (data contract: nobody rewrites "ope
 The two filters only differ by one WHERE line:
 
     open   -> no filter                 (everything open right now)
-    24h    -> WHERE is_24h              (24h pharmacies that are open right now)
+    24h    -> WHERE has_active_24h_duty  (an active duty lasting exactly 24 hours)
 
 A "Night" filter is postponed: see the discussion about what a duty window means.
+The meaning of "All" still needs a team decision.
 """
 
 import argparse
@@ -30,12 +31,12 @@ DEFAULT_LON, DEFAULT_LAT = -7.6200, 33.5900
 # position and limit go through %(...)s parameters, which is how you avoid SQL injection.
 FILTERS = {
     "open": "",
-    "24h": "WHERE is_24h",
+    "24h": "WHERE has_active_24h_duty",
 }
 
 QUERY = """
 SELECT
-    id, name, address, is_24h, last_status, last_confirmed_at,
+    id, name, address, has_active_24h_duty, last_status, last_confirmed_at,
     ST_Distance(geom, here.pt) AS distance_m
 FROM v_open_now,
      (SELECT ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4326)::geography AS pt) AS here
@@ -72,8 +73,8 @@ def main():
         rows = conn.execute(sql, params).fetchall()
 
     print(f"filter={args.filter}: {len(rows)} pharmacies (nearest first)")
-    for id_, name, address, is_24h, status, confirmed_at, dist in rows:
-        tags = ("24h " if is_24h else "duty") + (f" last={status}" if status else "")
+    for id_, name, address, has_24h_duty, status, confirmed_at, dist in rows:
+        tags = ("24h " if has_24h_duty else "duty") + (f" last={status}" if status else "")
         print(f"  {id_:>4}  {dist / 1000:5.2f} km  [{tags:<14}] {name} - {address}")
 
 

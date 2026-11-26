@@ -1,0 +1,19 @@
+{
+  "elements": [
+    {
+      "type": "node", "id": 900000001,
+      "lat": 33.59, "lon": -7.63,
+      "tags": {
+        "amenity": "pharmacy", "name": "FAKE OSM node",
+        "addr:street": "Rue fictive", "addr:housenumber": "1",
+        "phone": "+212522000099", "opening_hours": "24/7"
+      }
+    },
+    {
+      "type": "way", "id": 900000001,
+      "center": {"lat": 33.58, "lon": -7.62},
+      "tags": {"amenity": "pharmacy", "name:fr": "FAKE OSM way"}
+    },
+    {"type": "node", "id": 900000002, "tags": {"amenity": "pharmacy"}}
+  ]
+}

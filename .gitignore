@@ -1,1 +1,13 @@
 .vscode/
+.local-backups/
+ANALYSE_PROJET.md
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.log
+logs/
+.env
+.env.*
+*.env
+.venv/

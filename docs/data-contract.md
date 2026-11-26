@@ -62,31 +62,60 @@ Consumer rule: insert into `confirmations`; if `event_id` already exists, ignore
 | `duty_rota` | the `duty-rota` consumer | on-duty windows |
 | `confirmations` | the `confirmations` consumer | open / closed reports |
 
+`pharmacies.osm_id` is nullable text such as `node/123456`, `way/987654`
+or `relation/456789`. The object type is part of its identity. A unique index
+prevents duplicate non-null OSM identities; fake seed pharmacies keep NULL.
+The OSM importer updates existing objects by `osm_id`. OSM opening hours do not
+determine duty status and are not imported as a permanent 24h flag.
+
+The `source` values above apply to Kafka messages. SQL demo fixtures additionally
+use `seed`; this is not a value accepted by the duty-rota consumer.
+
 ## The one definition of "open now"
 
 Everybody uses the view **`v_open_now`**. Nobody rewrites this logic in their own query.
 
 A pharmacy is open now when:
-1. it is a 24h pharmacy, **or** the current time is inside one of its duty windows, **and**
-2. nobody reported it **closed** in the last **60 minutes** (a newer "open" report cancels an older "closed" one).
+1. at least one duty window is active: `starts_at <= now() AND now() < ends_at`, regardless of its duration; **and**
+2. its latest confirmation in `(now() - 60 minutes, now()]` is not `closed` (or there is no confirmation in that interval).
 
-The view also gives `last_status` and `last_confirmed_at`, for the "Confirmed 12 min ago" label.
+A strictly newer `open` cancels an older `closed`. At equal timestamps, `closed`
+wins. Future confirmations are ignored until their timestamp is reached. A report
+exactly 60 minutes old no longer excludes a pharmacy. An `open` report does not
+create a duty window or make an off-duty pharmacy open.
+
+**24h means an active duty window lasting exactly 24 elapsed hours:**
+`ends_at - starts_at = interval '24 hours'`. It is a changing duty role, not a
+permanent property from OpenStreetMap. `pharmacies.is_24h` is removed by migration
+06. Having several active windows still produces one row per pharmacy in the view.
+
+The view exposes `id`, `name`, `address`, `phone`, `geom`, `last_status`,
+`last_confirmed_at` and `has_active_24h_duty`. The last boolean is true if at least
+one active window lasts exactly 24 hours. Confirmation fields describe only the
+60-minute interval above and may be NULL. All filters use this view.
 
 | Feature | How it uses the view |
 |---|---|
 | Nearest pharmacy (Slice C) | `SELECT ... FROM v_open_now ORDER BY geom <-> <user point> LIMIT 3` |
 | Filter "Open now" | no filter: the whole view |
-| Filter "24h" | `WHERE is_24h` |
+| Filter "24h" | `SELECT ... FROM v_open_now WHERE has_active_24h_duty` |
 | Coverage map (Slice B) | the pharmacies in the view are the "on-duty" ones |
 
 A "Night" filter is postponed until we agree on what "night" means (a duty window is just a start and an end, it is not tied to night).
+The first version has **Open now / 24h**. The meaning of **All** remains a team
+decision; it is not implemented as an alias for Open now.
 
 ## Changing this contract
 
 1. Tell the team before you change a message or a table.
-2. Database changes are a **new numbered file** in `sql/` (`05_...sql`), never a silent edit of an old one.
+2. Database changes are a **new numbered file** in `sql/` (next free number), never a silent edit of an old one. Files 01 through 05 remain historical and unchanged.
 3. Update this file in the same change.
 
-## Important change
+## Step 0 schema change notice
 
-the "is_24h" flag we get from OSM means that the pharmacy is always open which is not what we want, in morocco 24h means that this is the in duty-pharmacy and this role change every day, which corresponds to a pharmacy that has a start and end difference is 24h, so briefly we should remove the is_24h column because its useless. 
+Share this change with the team before applying it to a shared database:
+`06_open_now_without_is_24h.sql` replaces `v_open_now`, removes the permanent
+`is_24h` column and adds the derived view field `has_active_24h_duty`. Apply 06
+alone to upgrade an existing 01–05 database without resetting its data. File 07
+is demo data for a fresh/reset development database, not a required production
+migration. The full `seed` command is destructive; see the README.

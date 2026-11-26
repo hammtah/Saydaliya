@@ -2,7 +2,7 @@
 
 Usage:
     pip install "psycopg[binary]"
-k    python load/import_osm.py                 # download from Overpass, then import
+    python load/import_osm.py                 # download from Overpass, then import
     python load/import_osm.py --dry-run       # download and show what WOULD be imported
     python load/import_osm.py --file osm.json # reuse a saved download (no network)
 
@@ -93,7 +93,6 @@ def parse_element(element):
         "name": tags.get("name") or tags.get("name:fr") or DEFAULT_NAME,
         "address": build_address(tags),
         "phone": tags.get("phone") or tags.get("contact:phone"),
-        "is_24h": tags.get("opening_hours") == "24/7",
         "lat": lat,
         "lon": lon,
     }
@@ -116,16 +115,15 @@ def parse_all(payload):
 # ON CONFLICT (osm_id) DO UPDATE is the "upsert": insert, or update if it exists.
 # (xmax = 0) is a PostgreSQL trick: true for a fresh insert, false for an update.
 UPSERT_SQL = """
-INSERT INTO pharmacies (osm_id, name, address, phone, is_24h, geom)
+INSERT INTO pharmacies (osm_id, name, address, phone, geom)
 VALUES (
-    %(osm_id)s, %(name)s, %(address)s, %(phone)s, %(is_24h)s,
+    %(osm_id)s, %(name)s, %(address)s, %(phone)s,
     ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4326)::geography
 )
 ON CONFLICT (osm_id) DO UPDATE SET
     name    = EXCLUDED.name,
     address = EXCLUDED.address,
     phone   = EXCLUDED.phone,
-    is_24h  = EXCLUDED.is_24h,
     geom    = EXCLUDED.geom
 RETURNING (xmax = 0) AS inserted;
 """
@@ -171,13 +169,11 @@ def main():
     no_name = sum(r["name"] == DEFAULT_NAME for r in rows)
     no_phone = sum(r["phone"] is None for r in rows)
     no_address = sum(r["address"] == DEFAULT_ADDRESS for r in rows)
-    n_24h = sum(r["is_24h"] for r in rows)
 
     print(f"OSM elements parsed : {len(rows)} (skipped without position: {skipped})")
     print(f"  without a name    : {no_name}")
     print(f"  without a phone   : {no_phone}")
     print(f"  without an address: {no_address}")
-    print(f"  tagged 24/7       : {n_24h}")
 
     if args.dry_run:
         print("Dry run: database not touched.")
